@@ -3,11 +3,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
+from mangum import Mangum
 
 # Initialize FastAPI app
 app = FastAPI(title="Efarmer API", version="1.0.0")
 
-# Configure CORS so Vercel frontend can connect without blocking
+# Configure CORS so your frontend can connect without blocking
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows requests from any origin (or replace with your Vercel URL)
@@ -16,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# Supabase configuration (reads from Render environment variables)
+# Supabase configuration (reads from environment variables)
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
@@ -56,6 +57,9 @@ def create_crop(crop: CropCreate):
         return response.data[0] if response.data else {"message": "Crop added successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Mangum handler wrapper for Vercel serverless deployment
+handler = Mangum(app)
 
 if __name__ == "__main__":
     import uvicorn

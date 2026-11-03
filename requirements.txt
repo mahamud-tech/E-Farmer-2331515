@@ -1,0 +1,6 @@
+fastapi[standard]>=0.141.1
+fastapi
+uvicorn
+supabase
+pydantic
+mangum

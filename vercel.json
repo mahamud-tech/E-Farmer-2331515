@@ -1,19 +1,17 @@
 ﻿{
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "backend/main.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/main.py"
+      "source": "/api/(.*)",
+      "destination": "/backend/main.py"
     },
     {
-      "src": "/crops(.*)",
-      "dest": "backend/main.py"
+      "source": "/crops/(.*)",
+      "destination": "/backend/main.py"
+    },
+    {
+      "source": "/crops",
+      "destination": "/backend/main.py"
     }
   ]
 }

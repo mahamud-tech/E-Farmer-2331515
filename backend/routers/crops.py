@@ -1,73 +1,58 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
-from supabase import create_client, Client
+from typing import List
 
 router = APIRouter(prefix="/crops", tags=["crops"])
 
-# Your Supabase credentials
-SUPABASE_URL = "https://lezjqsiulosnefjsfaaw.supabase.co"
-SUPABASE_KEY = "sb_publishable_n2sXekte2ZoyMafhdrO6tQ_KdT35xzZ"
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-class CropCreate(BaseModel):
+# Pydantic Schema including price
+class CropSchema(BaseModel):
     name: str
-    category: str
-    quantity: float
-    price_per_unit: float
-    status: Optional[str] = "available"
+    type: str
+    quantity: int
+    price: float
 
-class Crop(CropCreate):
-    id: str
-    created_at: Optional[str] = None
+# Initial in-memory data store for local testing
+crops_db = [
+    {"id": 1, "name": "Rice", "type": "Grain", "quantity": 100, "price": 2.50},
+    {"id": 2, "name": "Wheat", "type": "Grain", "quantity": 50, "price": 1.80}
+]
 
-@router.get("/", response_model=List[Crop])
+# 1. READ ALL (View All Crops)
+@router.get("/", response_model=List[dict])
 def get_crops():
-    response = supabase.table("crops").select("*").execute()
-    return response.data
+    return crops_db
 
-@router.post("/", response_model=Crop)
-def create_crop(crop: CropCreate):
-    data = {
-        "name": crop.name,
-        "category": crop.category,
-        "quantity": crop.quantity,
-        "price_per_unit": crop.price_per_unit,
-        "status": crop.status
-    }
-    response = supabase.table("crops").insert(data).execute()
-    if response.data:
-        return response.data[0]
-    raise HTTPException(status_code=400, detail="Failed to create crop")
+# 2. READ ONE (View Single Crop Details by ID)
+@router.get("/{crop_id}")
+def get_crop(crop_id: int):
+    for crop in crops_db:
+        if crop["id"] == crop_id:
+            return crop
+    raise HTTPException(status_code=404, detail="Crop not found")
 
-@router.get("/{crop_id}", response_model=Crop)
-def get_crop(crop_id: str):
-    response = supabase.table("crops").select("*").eq("id", crop_id).execute()
-    if response.data and len(response.data) > 0:
-        return response.data[0]
-    raise HTTPException(status_status=404, detail="Crop not found")
+# 3. CREATE (Add New Crop)
+@router.post("/")
+def add_crop(crop: CropSchema):
+    new_id = len(crops_db) + 1 if crops_db else 1
+    new_item = {"id": new_id, **crop.model_dump()}
+    crops_db.append(new_item)
+    return new_item
 
+# 4. UPDATE (Edit Existing Crop)
+@router.put("/{crop_id}")
+def update_crop(crop_id: int, updated: CropSchema):
+    for crop in crops_db:
+        if crop["id"] == crop_id:
+            crop.update(updated.model_dump())
+            return crop
+    raise HTTPException(status_code=404, detail="Crop not found")
+
+# 5. DELETE (Remove Crop)
 @router.delete("/{crop_id}")
-def delete_crop(crop_id: str):
-    response = supabase.table("crops").delete().eq("id", crop_id).execute()
-    return {"message": "Deleted successfully"}
-
-@router.put("/{crop_id}", response_model=Crop)
-def update_crop(crop_id: str, crop: CropCreate):
-    try:
-        data = {
-            "name": crop.name,
-            "category": crop.category,
-            "quantity": crop.quantity,
-            "price_per_unit": crop.price_per_unit,
-            "status": crop.status
-        }
-        response = supabase.table("crops").update(data).eq("id", crop_id).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0]
-        raise HTTPException(status_code=404, detail="Crop not found or update failed")
-    except Exception as e:
-        print(f"Error updating crop: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+def delete_crop(crop_id: int):
+    global crops_db
+    for crop in crops_db:
+        if crop["id"] == crop_id:
+            crops_db = [c for c in crops_db if c["id"] != crop_id]
+            return {"message": f"Crop #{crop_id} deleted successfully"}
+    raise HTTPException(status_code=404, detail="Crop not found")

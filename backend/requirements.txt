@@ -1,0 +1,5 @@
+fastapi[standard]>=0.141.1
+uvicorn
+python-multipart
+supabase
+python-dotenv

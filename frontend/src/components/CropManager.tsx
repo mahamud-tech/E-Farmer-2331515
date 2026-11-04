@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const API_URL = "https://e-farmer-2331515-2.onrender.com/";
+const API_URL = "https://e-farmer-2331515-2.onrender.com/crops/";
 
 interface Crop {
   id: number;
